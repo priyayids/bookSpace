@@ -6,12 +6,17 @@ RUN npm install -g pnpm@10.34.3
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY backend/package.json ./backend/
+COPY backend/prisma ./backend/prisma/
 
 RUN pnpm --filter backend install --frozen-lockfile
 
 COPY backend/ ./backend/
 RUN pnpm --filter backend db:generate && pnpm --filter backend build
 RUN pnpm --filter backend deploy --legacy --prod /prod/backend
+RUN PRISMA_DIR=$(find /app/node_modules/.pnpm -name ".prisma" -type d | head -n 1) && \
+    TARGET_PNPM=$(dirname $(readlink -f /prod/backend/node_modules/@prisma/client))/.. && \
+    cp -r "$PRISMA_DIR" "$TARGET_PNPM/" && \
+    cp -r "$PRISMA_DIR" /prod/backend/node_modules/
 
 FROM node:22-alpine AS runner
 
