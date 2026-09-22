@@ -1,0 +1,16 @@
+{
+  "name": "roombook",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "pnpm --filter frontend dev",
+    "build": "pnpm --filter backend build && pnpm --filter frontend build",
+    "start": "pnpm --filter backend start",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0",
+    "pnpm": "^10.34.3"
+  }
+}

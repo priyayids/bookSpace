@@ -1,0 +1,57 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Room {
+  id                 String   @id @default(cuid())
+  name               String
+  code               String   @unique
+  location           String
+  floor              Int
+  capacity           Int
+  facilities         String[]
+  photo_url          String?
+  operating_hours    Json     @default("{\"open\": \"08:00\", \"close\": \"18:00\"}")
+  is_active          Boolean  @default(true)
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+  bookings           Booking[]
+
+  @@map("rooms")
+}
+
+model Booking {
+  id              String   @id @default(cuid())
+  room_id         String
+  room            Room     @relation(fields: [room_id], references: [id])
+  date            String
+  start_time      String
+  end_time        String
+  title           String
+  booked_by_name  String
+  booked_by_email String
+  attendee_count  Int?     @default(0)
+  notes           String?
+  status          String   @default("pending")
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  @@map("bookings")
+  @@unique([room_id, date, start_time, end_time], name: "unique_room_date_slot")
+}
+
+model Settings {
+  id                   String   @id @default(cuid())
+  operating_hours      Json     @default("{\"open\": \"08:00\", \"close\": \"18:00\"}")
+  min_duration_minutes Int      @default(60)
+  slot_granularity_minutes Int  @default(30)
+  timezone             String   @default("Asia/Jakarta")
+  updated_at           DateTime @updatedAt
+
+  @@map("settings")
+}

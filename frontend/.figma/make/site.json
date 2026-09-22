@@ -1,0 +1,6 @@
+{
+  "title": "BookSpace",
+  "description": "A web-based meeting room booking system.",
+  "robots": { "index": false },
+  "accessibility": { "addBypassLinks": false, "ignoreReducedMotion": false }
+}
