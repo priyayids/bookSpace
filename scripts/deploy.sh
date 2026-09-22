@@ -72,8 +72,9 @@ log "Checking and seeding initial data if needed..."
 docker compose -f "$COMPOSE_FILE" run --rm app node -e "
 import('./dist/prisma/client.js').then(async ({ prisma }) => {
   const count = await prisma.room.count();
-  if (count === 0) {
-    console.log('No rooms found. Seeding initial test rooms and bookings...');
+  const settings = await prisma.settings.findUnique({ where: { id: 'settings' } });
+  if (count === 0 || !settings) {
+    console.log('Seeding initial test rooms, bookings, and settings...');
     await import('./dist/seed.js');
   } else {
     console.log('Database already populated (' + count + ' rooms). Skipping seed.');

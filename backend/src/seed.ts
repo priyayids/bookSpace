@@ -42,6 +42,18 @@ async function main() {
     })
   }
 
+  await prisma.settings.upsert({
+    where: { id: 'settings' },
+    update: {},
+    create: {
+      id: 'settings',
+      operating_hours: { open: '08:00', close: '18:00' },
+      min_duration_minutes: 60,
+      slot_granularity_minutes: 30,
+      timezone: 'Asia/Jakarta',
+    },
+  })
+
   console.log('Seeding completed successfully!')
 }
 
