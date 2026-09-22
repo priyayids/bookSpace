@@ -22,17 +22,32 @@ bookSpace/
 │   │   ├── routes/    # rooms, bookings, settings, dashboard, auth
 │   │   ├── middleware/ # JWT auth middleware
 │   │   ├── utils/     # Validation & time collision helpers
+│   │   ├── seed.ts    # Production-ready seed script
 │   │   └── index.ts
 │   ├── prisma/        # Schema (pending default), migrations, seed script
 │   └── package.json
+├── scripts/           # Deployment and automation scripts
+│   └── deploy.sh      # Production deployment runner
+├── .github/workflows/ # GitHub Actions CI/CD workflows
+│   └── deploy.yml     # Automated build, test, and VPS deployment
 ├── docs/              # PRD and documentation
 ├── tests/             # Playwright E2E and visual testing suite
-├── docker-compose.yml
-├── Dockerfile.frontend
-├── Dockerfile.backend
-├── nginx.conf
+├── docker-compose.yml # Local development compose
+├── docker-compose.prod.yml # Production multi-container setup (port 3050)
+├── Dockerfile.frontend# Frontend Nginx container
+├── Dockerfile.backend # Backend Node 22 runner with Prisma bundle
+├── nginx.conf         # Internal container reverse proxy
 └── package.json       # Root pnpm workspace
 ```
+
+## Production Deployment
+
+- **Live URL**: `https://bookspace.app-cube.tech`
+- **DNS**: Cloudflare proxied CNAME `bookspace.app-cube.tech` $\rightarrow$ `app-cube.tech`
+- **Host Nginx**: Reverse proxies `bookspace.app-cube.tech` to `http://127.0.0.1:3050` with Let's Encrypt SSL
+- **VPS Location**: `/srv/bookSpace` on target server
+- **Port Allocation**: Host port `3050` bound to frontend Nginx container; backend (`3000`) and PostgreSQL (`5432`) communicate over isolated Docker bridge `bookspace_net` without conflicting with existing VPS services.
+- **CI/CD**: GitHub Actions pushes on `main` automatically run tests, build artifacts, SSH into the VPS, and execute `/usr/local/bin/bookspace-deploy.sh`.
 
 ## Development
 
@@ -47,6 +62,7 @@ node tests/e2e-test.mjs       # Run Playwright E2E tests
 
 ## API Endpoints
 
+- `GET /api/health` — Health check endpoint
 - `GET /api/rooms` — List active rooms (`?all=true` for all)
 - `POST /api/rooms` — Create room [admin]
 - `PUT /api/rooms/:id` — Update room [admin]
@@ -74,5 +90,6 @@ node tests/e2e-test.mjs       # Run Playwright E2E tests
 - Frontend: React 19 + Vite 8 + TypeScript 5.7 + Tailwind CSS v4
 - Backend: Express 5 + TypeScript + Prisma ORM + PostgreSQL
 - Database: PostgreSQL (via Docker or local service)
-- Deployment: Docker + nginx + docker-compose
+- Deployment: Docker + nginx + docker-compose.prod.yml + GitHub Actions CI/CD
+- Domain & Security: Cloudflare DNS + Host Nginx SSL (Let's Encrypt)
 - Testing: Playwright E2E

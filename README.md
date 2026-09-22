@@ -212,9 +212,98 @@ The test suite automatically seeds test fixtures, validates UI rendering, execut
 
 ---
 
-## Production Deployment with Docker
+## Production Deployment
 
-BookSpace includes a production-ready `docker-compose.yml` with multi-stage Dockerfiles and Nginx reverse proxy.
+### Live Instance
+- **URL**: [https://bookspace.app-cube.tech](https://bookspace.app-cube.tech)
+- **Status**: Live and verified with Let's Encrypt SSL & Cloudflare Proxy
+- **Default Admin Password**: `admin`
+
+---
+
+### CI/CD Pipeline (GitHub Actions)
+
+BookSpace includes a complete continuous integration and continuous deployment pipeline configured in `.github/workflows/deploy.yml`:
+
+```
+git push origin main
+       │
+       ▼
+GitHub Actions Runner
+├── 1. Install dependencies (pnpm frozen lockfile)
+├── 2. Generate Prisma Client
+├── 3. Typecheck & build backend (tsc)
+├── 4. Typecheck & build frontend (vite build)
+       │ (on success)
+       ▼
+Deploy via SSH (`appleboy/ssh-action`)
+       │
+       ▼
+Production VPS (/srv/bookSpace)
+├── 1. Pull latest commit from main
+├── 2. Build production Docker images
+├── 3. Start PostgreSQL container & wait for health
+├── 4. Execute Prisma migrations (`prisma migrate deploy`)
+├── 5. Seed initial rooms, bookings, and settings if needed
+├── 6. Launch backend and frontend containers
+└── 7. Verify /api/health endpoint
+```
+
+#### GitHub Secrets Configuration
+The CI/CD pipeline uses GitHub encrypted repository secrets:
+- `VPS_HOST`: VPS IP address (`187.77.126.196`)
+- `VPS_USER`: Dedicated deploy user (`deploy`)
+- `VPS_PORT`: SSH port (`22`)
+- `VPS_SSH_KEY`: ED25519 private key authorized for passwordless sudo execution of `/usr/local/bin/bookspace-deploy.sh`
+
+---
+
+### Production Architecture & VPS Zero-Conflict Design
+
+To operate harmoniously on servers hosting multiple projects, BookSpace uses a dedicated container network and carefully allocated host ports:
+
+| Service | Container | Host Binding | Internal Network |
+|---|---|---|---|
+| Frontend & Proxy | `bookspace-frontend` | `127.0.0.1:3050:80` | `bookspace_net` |
+| Express API | `bookspace-app` | *None (isolated)* | `bookspace_net:3000` |
+| Database | `bookspace-db` | *None (isolated)* | `bookspace_net:5432` |
+
+#### Host Reverse Proxy (Nginx)
+The host Nginx acts as the public entry point and terminates SSL:
+- Configuration: `/etc/nginx/sites-available/bookspace.app-cube.tech`
+- Upstream: `http://127.0.0.1:3050`
+- SSL: Managed via Let's Encrypt Certbot with automatic renewal
+
+#### Cloudflare DNS
+- **Record**: `bookspace.app-cube.tech`
+- **Type**: `CNAME` pointing to root domain `app-cube.tech`
+- **Proxy**: Enabled (`proxied: true`) with Cloudflare Edge CDN & DDoS protection
+
+---
+
+### VPS Operations & Manual Deployment
+
+To trigger a manual deployment or check system status on the VPS:
+
+```bash
+# Execute deployment script as deploy user
+ssh deploy@187.77.126.196 "sudo /usr/local/bin/bookspace-deploy.sh"
+
+# Check container status
+cd /srv/bookSpace && docker compose -f docker-compose.prod.yml ps
+
+# View live application logs
+docker compose -f docker-compose.prod.yml logs -f app
+
+# Inspect deployment logs
+tail -f /var/log/bookspace-deploy.log
+```
+
+---
+
+## Local Production Deployment with Docker
+
+To run the production container stack locally:
 
 ```bash
 # Build and start all containers in detached mode
@@ -234,3 +323,4 @@ Services started:
 ## License
 
 MIT License. Designed and maintained for enterprise meeting space scheduling.
+
