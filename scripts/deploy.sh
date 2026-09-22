@@ -66,7 +66,7 @@ if [ "$DB_READY" -eq 0 ]; then
 fi
 
 log "Running Prisma database migrations..."
-docker compose -f "$COMPOSE_FILE" run --rm app ./node_modules/.bin/prisma migrate deploy
+docker compose -f "$COMPOSE_FILE" run --rm app sh -c 'node /app/node_modules/.pnpm/prisma@*/node_modules/prisma/build/index.js migrate deploy'
 
 log "Checking and seeding initial data if needed..."
 docker compose -f "$COMPOSE_FILE" run --rm app node -e "
