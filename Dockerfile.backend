@@ -2,11 +2,15 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-COPY backend/package.json backend/pnpm-lock.yaml* ./
-RUN corepack enable pnpm && pnpm install --frozen-lockfile
+RUN npm install -g pnpm@10.34.3
 
-COPY backend/ ./
-RUN pnpm prisma generate && pnpm build
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY backend/package.json ./backend/
+
+RUN pnpm --filter backend install --frozen-lockfile
+
+COPY backend/ ./backend/
+RUN pnpm --filter backend db:generate && pnpm --filter backend build
 
 FROM node:22-alpine AS runner
 
@@ -14,9 +18,10 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/backend/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/backend/prisma ./prisma
+COPY --from=builder /app/backend/package.json ./package.json
 
 EXPOSE 3000
 
